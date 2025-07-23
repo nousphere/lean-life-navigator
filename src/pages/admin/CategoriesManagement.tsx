@@ -4,92 +4,231 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Edit, Trash2 } from "lucide-react";
+import { Plus, Edit, Trash2, ChevronDown, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+
+interface ProgramVariation {
+  id: string;
+  name: string;
+  description: string;
+  monthlyPrice: number;
+  features: string[];
+}
+
+interface Program {
+  id: string;
+  name: string;
+  description: string;
+  websiteUrl: string;
+  variations: ProgramVariation[];
+}
+
+interface Category {
+  id: string;
+  name: string;
+  description: string;
+  programs: Program[];
+}
 
 export function CategoriesManagement() {
-  const [categories, setCategories] = useState([
-    { id: "1", name: "Traditional Programs", description: "Structured weight loss programs like Weight Watchers, Noom" },
-    { id: "2", name: "Medical Weight Loss", description: "Doctor-supervised weight loss programs and clinics" },
-    { id: "3", name: "Medications", description: "Weight loss medications like semaglutide, tirzepatide" },
-    { id: "4", name: "Fitness Programs", description: "Exercise-focused programs like Beach Body, Athlean-X" },
-    { id: "5", name: "Supplements", description: "Weight loss supplements and nutritional products" },
+  const [categories, setCategories] = useState<Category[]>([
+    {
+      id: "1",
+      name: "Traditional Programs",
+      description: "Structured weight loss programs with proven track records",
+      programs: [
+        {
+          id: "p1",
+          name: "Weight Watchers",
+          description: "Points-based weight loss program with community support",
+          websiteUrl: "https://weightwatchers.com",
+          variations: [
+            {
+              id: "v1",
+              name: "Weight Watchers Free",
+              description: "Basic tracking with limited features",
+              monthlyPrice: 0,
+              features: ["Basic tracking", "Community forums"]
+            },
+            {
+              id: "v2", 
+              name: "Weight Watchers Premium",
+              description: "Full program with personal coaching",
+              monthlyPrice: 59,
+              features: ["Personal coach", "Full tracking", "Recipes", "Workshops"]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: "2",
+      name: "Medical Weight Loss",
+      description: "Doctor-supervised weight loss programs and clinics",
+      programs: []
+    },
+    {
+      id: "3",
+      name: "Medications",
+      description: "Weight loss medications like semaglutide, tirzepatide",
+      programs: []
+    }
   ]);
   
-  const [showForm, setShowForm] = useState(false);
-  const [editingCategory, setEditingCategory] = useState(null);
-  const [formData, setFormData] = useState({ name: "", description: "" });
+  const [showCategoryForm, setShowCategoryForm] = useState(false);
+  const [showProgramForm, setShowProgramForm] = useState(false);
+  const [showVariationForm, setShowVariationForm] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
+  const [selectedProgramId, setSelectedProgramId] = useState<string>("");
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(["1"]));
+  
+  const [categoryForm, setCategoryForm] = useState({ name: "", description: "" });
+  const [programForm, setProgramForm] = useState({ name: "", description: "", websiteUrl: "" });
+  const [variationForm, setVariationForm] = useState({ 
+    name: "", 
+    description: "", 
+    monthlyPrice: 0, 
+    features: [""] 
+  });
+  
   const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const toggleCategory = (categoryId: string) => {
+    const newExpanded = new Set(expandedCategories);
+    if (newExpanded.has(categoryId)) {
+      newExpanded.delete(categoryId);
+    } else {
+      newExpanded.add(categoryId);
+    }
+    setExpandedCategories(newExpanded);
+  };
+
+  const handleCategorySubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (editingCategory) {
       setCategories(prev => prev.map(cat => 
         cat.id === editingCategory.id 
-          ? { ...cat, ...formData }
+          ? { ...cat, ...categoryForm }
           : cat
       ));
       toast({ title: "Category updated successfully" });
     } else {
-      const newCategory = {
+      const newCategory: Category = {
         id: Date.now().toString(),
-        ...formData
+        ...categoryForm,
+        programs: []
       };
       setCategories(prev => [...prev, newCategory]);
       toast({ title: "Category created successfully" });
     }
-    setFormData({ name: "", description: "" });
+    setCategoryForm({ name: "", description: "" });
     setEditingCategory(null);
-    setShowForm(false);
+    setShowCategoryForm(false);
   };
 
-  const handleEdit = (category) => {
-    setEditingCategory(category);
-    setFormData({ name: category.name, description: category.description });
-    setShowForm(true);
+  const handleProgramSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const newProgram: Program = {
+      id: Date.now().toString(),
+      ...programForm,
+      variations: []
+    };
+    
+    setCategories(prev => prev.map(cat => 
+      cat.id === selectedCategoryId
+        ? { ...cat, programs: [...cat.programs, newProgram] }
+        : cat
+    ));
+    
+    setProgramForm({ name: "", description: "", websiteUrl: "" });
+    setShowProgramForm(false);
+    setSelectedCategoryId("");
+    toast({ title: "Program added successfully" });
   };
 
-  const handleDelete = (id: string) => {
-    setCategories(prev => prev.filter(cat => cat.id !== id));
-    toast({ title: "Category deleted successfully" });
+  const handleVariationSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const newVariation: ProgramVariation = {
+      id: Date.now().toString(),
+      ...variationForm,
+      features: variationForm.features.filter(f => f.trim() !== "")
+    };
+    
+    setCategories(prev => prev.map(cat => ({
+      ...cat,
+      programs: cat.programs.map(prog => 
+        prog.id === selectedProgramId
+          ? { ...prog, variations: [...prog.variations, newVariation] }
+          : prog
+      )
+    })));
+    
+    setVariationForm({ name: "", description: "", monthlyPrice: 0, features: [""] });
+    setShowVariationForm(false);
+    setSelectedProgramId("");
+    toast({ title: "Program variation added successfully" });
+  };
+
+  const addFeatureField = () => {
+    setVariationForm(prev => ({
+      ...prev,
+      features: [...prev.features, ""]
+    }));
+  };
+
+  const updateFeature = (index: number, value: string) => {
+    setVariationForm(prev => ({
+      ...prev,
+      features: prev.features.map((f, i) => i === index ? value : f)
+    }));
+  };
+
+  const removeFeature = (index: number) => {
+    setVariationForm(prev => ({
+      ...prev,
+      features: prev.features.filter((_, i) => i !== index)
+    }));
   };
 
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Categories Management</h1>
-          <p className="text-muted-foreground">Manage weight loss program categories</p>
+          <h1 className="text-3xl font-bold">Categories & Programs Management</h1>
+          <p className="text-muted-foreground">Manage weight loss program categories and their programs</p>
         </div>
-        <Button onClick={() => setShowForm(true)}>
+        <Button onClick={() => setShowCategoryForm(true)}>
           <Plus className="mr-2 h-4 w-4" />
           Add Category
         </Button>
       </div>
 
-      {showForm && (
+      {/* Category Form */}
+      {showCategoryForm && (
         <Card>
           <CardHeader>
             <CardTitle>{editingCategory ? "Edit Category" : "Add New Category"}</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleCategorySubmit} className="space-y-4">
               <div>
-                <Label htmlFor="name">Category Name</Label>
+                <Label htmlFor="categoryName">Category Name</Label>
                 <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  id="categoryName"
+                  value={categoryForm.name}
+                  onChange={(e) => setCategoryForm(prev => ({ ...prev, name: e.target.value }))}
                   placeholder="e.g., Medical Weight Loss"
                   required
                 />
               </div>
               <div>
-                <Label htmlFor="description">Description</Label>
+                <Label htmlFor="categoryDescription">Description</Label>
                 <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  id="categoryDescription"
+                  value={categoryForm.description}
+                  onChange={(e) => setCategoryForm(prev => ({ ...prev, description: e.target.value }))}
                   placeholder="Describe this category..."
                   required
                 />
@@ -102,9 +241,9 @@ export function CategoriesManagement() {
                   type="button" 
                   variant="outline" 
                   onClick={() => {
-                    setShowForm(false);
+                    setShowCategoryForm(false);
                     setEditingCategory(null);
-                    setFormData({ name: "", description: "" });
+                    setCategoryForm({ name: "", description: "" });
                   }}
                 >
                   Cancel
@@ -115,31 +254,262 @@ export function CategoriesManagement() {
         </Card>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {categories.map((category) => (
-          <Card key={category.id}>
-            <CardHeader>
-              <CardTitle className="text-lg">{category.name}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground mb-4">{category.description}</p>
+      {/* Program Form */}
+      {showProgramForm && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Add Program to Category</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleProgramSubmit} className="space-y-4">
+              <div>
+                <Label htmlFor="programName">Program Name</Label>
+                <Input
+                  id="programName"
+                  value={programForm.name}
+                  onChange={(e) => setProgramForm(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="e.g., Weight Watchers"
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="programDescription">Description</Label>
+                <Textarea
+                  id="programDescription"
+                  value={programForm.description}
+                  onChange={(e) => setProgramForm(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Describe this program..."
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="programUrl">Website URL</Label>
+                <Input
+                  id="programUrl"
+                  type="url"
+                  value={programForm.websiteUrl}
+                  onChange={(e) => setProgramForm(prev => ({ ...prev, websiteUrl: e.target.value }))}
+                  placeholder="https://example.com"
+                  required
+                />
+              </div>
               <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleEdit(category)}
+                <Button type="submit">Add Program</Button>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => {
+                    setShowProgramForm(false);
+                    setProgramForm({ name: "", description: "", websiteUrl: "" });
+                  }}
                 >
-                  <Edit className="h-3 w-3" />
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleDelete(category.id)}
-                >
-                  <Trash2 className="h-3 w-3" />
+                  Cancel
                 </Button>
               </div>
-            </CardContent>
+            </form>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Variation Form */}
+      {showVariationForm && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Add Program Variation</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleVariationSubmit} className="space-y-4">
+              <div>
+                <Label htmlFor="variationName">Variation Name</Label>
+                <Input
+                  id="variationName"
+                  value={variationForm.name}
+                  onChange={(e) => setVariationForm(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="e.g., Weight Watchers Premium"
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="variationDescription">Description</Label>
+                <Textarea
+                  id="variationDescription"
+                  value={variationForm.description}
+                  onChange={(e) => setVariationForm(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Describe this variation..."
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="monthlyPrice">Monthly Price ($)</Label>
+                <Input
+                  id="monthlyPrice"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={variationForm.monthlyPrice}
+                  onChange={(e) => setVariationForm(prev => ({ ...prev, monthlyPrice: parseFloat(e.target.value) || 0 }))}
+                  required
+                />
+              </div>
+              <div>
+                <Label>Features</Label>
+                {variationForm.features.map((feature, index) => (
+                  <div key={index} className="flex gap-2 mt-2">
+                    <Input
+                      value={feature}
+                      onChange={(e) => updateFeature(index, e.target.value)}
+                      placeholder="Enter feature"
+                    />
+                    {variationForm.features.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => removeFeature(index)}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addFeatureField}
+                  className="mt-2"
+                >
+                  <Plus className="mr-2 h-3 w-3" />
+                  Add Feature
+                </Button>
+              </div>
+              <div className="flex gap-2">
+                <Button type="submit">Add Variation</Button>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => {
+                    setShowVariationForm(false);
+                    setVariationForm({ name: "", description: "", monthlyPrice: 0, features: [""] });
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Categories List */}
+      <div className="space-y-4">
+        {categories.map((category) => (
+          <Card key={category.id}>
+            <Collapsible 
+              open={expandedCategories.has(category.id)}
+              onOpenChange={() => toggleCategory(category.id)}
+            >
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" className="flex items-center gap-2 p-0 h-auto">
+                      {expandedCategories.has(category.id) ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
+                      <CardTitle className="text-lg">{category.name}</CardTitle>
+                    </Button>
+                  </CollapsibleTrigger>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setSelectedCategoryId(category.id);
+                        setShowProgramForm(true);
+                      }}
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Add Program
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setEditingCategory(category);
+                        setCategoryForm({ name: category.name, description: category.description });
+                        setShowCategoryForm(true);
+                      }}
+                    >
+                      <Edit className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+                <p className="text-sm text-muted-foreground">{category.description}</p>
+              </CardHeader>
+              
+              <CollapsibleContent>
+                <CardContent>
+                  {category.programs.length > 0 ? (
+                    <div className="space-y-4">
+                      {category.programs.map((program) => (
+                        <div key={program.id} className="border rounded-lg p-4">
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <h4 className="font-semibold">{program.name}</h4>
+                              <p className="text-sm text-muted-foreground">{program.description}</p>
+                              <a 
+                                href={program.websiteUrl} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-sm text-primary hover:underline"
+                              >
+                                {program.websiteUrl}
+                              </a>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setSelectedProgramId(program.id);
+                                setShowVariationForm(true);
+                              }}
+                            >
+                              <Plus className="h-3 w-3 mr-1" />
+                              Add Variation
+                            </Button>
+                          </div>
+                          
+                          {program.variations.length > 0 && (
+                            <div className="mt-3 space-y-2">
+                              <h5 className="text-sm font-medium">Variations:</h5>
+                              {program.variations.map((variation) => (
+                                <div key={variation.id} className="bg-muted/50 rounded p-3">
+                                  <div className="flex justify-between items-start">
+                                    <div>
+                                      <h6 className="font-medium">{variation.name}</h6>
+                                      <p className="text-xs text-muted-foreground">{variation.description}</p>
+                                      <p className="text-sm font-semibold">${variation.monthlyPrice}/month</p>
+                                      <div className="mt-1">
+                                        <span className="text-xs font-medium">Features: </span>
+                                        <span className="text-xs">{variation.features.join(", ")}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No programs in this category yet.</p>
+                  )}
+                </CardContent>
+              </CollapsibleContent>
+            </Collapsible>
           </Card>
         ))}
       </div>
