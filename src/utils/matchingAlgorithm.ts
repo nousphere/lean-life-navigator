@@ -126,7 +126,8 @@ export function calculateCompatibilityScore(answers: UserAnswers, program: Progr
 
 // Function to get program recommendations based on user answers
 export function getRecommendations(answers: UserAnswers): {
-  recommended: Array<Program & { score: number; reasons: string[] }>;
+  topMatches: Array<Program & { score: number; reasons: string[] }>;
+  youMayAlsoLike: Array<Program & { score: number; reasons: string[] }>;
   notRecommended: Array<Program & { score: number; reasons: string[] }>;
 } {
   const results = programs.map(program => {
@@ -187,16 +188,23 @@ export function getRecommendations(answers: UserAnswers): {
     };
   });
 
-  // Sort programs by score
+  // Sort programs by score (highest to lowest)
   const sortedResults = [...results].sort((a, b) => b.score - a.score);
   
-  // Separate into recommended and not recommended
-  const threshold = 60; // Score threshold for recommendation
-  const recommended = sortedResults.filter(program => program.score >= threshold);
-  const notRecommended = sortedResults.filter(program => program.score < threshold);
+  // Get top 3 matches (highest scoring)
+  const topMatches = sortedResults.slice(0, 3).filter(program => program.score >= 75);
+  
+  // Get "you may also be interested in" - programs with decent scores but not in top 3
+  const topMatchIds = new Set(topMatches.map(p => p.id));
+  const remainingPrograms = sortedResults.filter(program => !topMatchIds.has(program.id));
+  const youMayAlsoLike = remainingPrograms.filter(program => program.score >= 60 && program.score < 75);
+  
+  // Get not recommended programs (for admin or optional display)
+  const notRecommended = remainingPrograms.filter(program => program.score < 60);
 
   return {
-    recommended,
+    topMatches,
+    youMayAlsoLike,
     notRecommended
   };
 }

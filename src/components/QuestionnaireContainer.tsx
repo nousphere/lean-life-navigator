@@ -53,9 +53,9 @@ const QuestionnaireContainer = () => {
   };
   
   const currentQuestion = questions[currentQuestionIndex];
-  const { recommended, notRecommended } = showResults 
+  const { topMatches, youMayAlsoLike, notRecommended } = showResults 
     ? getRecommendations(userAnswers) 
-    : { recommended: [], notRecommended: [] };
+    : { topMatches: [], youMayAlsoLike: [], notRecommended: [] };
 
   return (
     <div className="w-full max-w-4xl mx-auto px-4">
@@ -85,11 +85,11 @@ const QuestionnaireContainer = () => {
             </Button>
           </div>
           
-          {recommended.length > 0 ? (
+          {topMatches.length > 0 ? (
             <>
-              <h3 className="text-xl font-semibold mb-4 text-primary">Top Recommendations</h3>
+              <h3 className="text-xl font-semibold mb-4 text-primary">Your Top 3 Matches</h3>
               <div className="space-y-6 mb-10">
-                {recommended.map((program, index) => (
+                {topMatches.map((program, index) => (
                   <ResultCard 
                     key={program.id} 
                     program={program} 
@@ -106,18 +106,18 @@ const QuestionnaireContainer = () => {
             </div>
           )}
           
-          {notRecommended.length > 0 && (
+          {youMayAlsoLike.length > 0 && (
             <>
               <h3 className="text-xl font-semibold mb-4 text-muted-foreground">
-                Not Recommended For You
+                You May Also Be Interested In
               </h3>
-              <div className="space-y-6">
-                {notRecommended.slice(0, 3).map((program, index) => (
+              <div className="space-y-6 mb-8">
+                {youMayAlsoLike.map((program, index) => (
                   <ResultCard 
                     key={program.id} 
                     program={program} 
-                    rank={recommended.length + index + 1} 
-                    isRecommended={false}
+                    rank={topMatches.length + index + 1} 
+                    isRecommended={true}
                   />
                 ))}
               </div>
