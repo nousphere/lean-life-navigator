@@ -80,6 +80,8 @@ export function CategoriesManagement() {
   const [showProgramForm, setShowProgramForm] = useState(false);
   const [showVariationForm, setShowVariationForm] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [editingProgram, setEditingProgram] = useState<Program | null>(null);
+  const [editingVariation, setEditingVariation] = useState<ProgramVariation | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
   const [selectedProgramId, setSelectedProgramId] = useState<string>("");
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(["1"]));
@@ -130,45 +132,76 @@ export function CategoriesManagement() {
 
   const handleProgramSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const newProgram: Program = {
-      id: Date.now().toString(),
-      ...programForm,
-      variations: []
-    };
     
-    setCategories(prev => prev.map(cat => 
-      cat.id === selectedCategoryId
-        ? { ...cat, programs: [...cat.programs, newProgram] }
-        : cat
-    ));
+    if (editingProgram) {
+      setCategories(prev => prev.map(cat => ({
+        ...cat,
+        programs: cat.programs.map(prog =>
+          prog.id === editingProgram.id
+            ? { ...prog, ...programForm }
+            : prog
+        )
+      })));
+      toast({ title: "Program updated successfully" });
+    } else {
+      const newProgram: Program = {
+        id: Date.now().toString(),
+        ...programForm,
+        variations: []
+      };
+      
+      setCategories(prev => prev.map(cat => 
+        cat.id === selectedCategoryId
+          ? { ...cat, programs: [...cat.programs, newProgram] }
+          : cat
+      ));
+      toast({ title: "Program added successfully" });
+    }
     
     setProgramForm({ name: "", description: "", websiteUrl: "" });
+    setEditingProgram(null);
     setShowProgramForm(false);
     setSelectedCategoryId("");
-    toast({ title: "Program added successfully" });
   };
 
   const handleVariationSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const newVariation: ProgramVariation = {
-      id: Date.now().toString(),
-      ...variationForm,
-      features: variationForm.features.filter(f => f.trim() !== "")
-    };
     
-    setCategories(prev => prev.map(cat => ({
-      ...cat,
-      programs: cat.programs.map(prog => 
-        prog.id === selectedProgramId
-          ? { ...prog, variations: [...prog.variations, newVariation] }
-          : prog
-      )
-    })));
+    if (editingVariation) {
+      setCategories(prev => prev.map(cat => ({
+        ...cat,
+        programs: cat.programs.map(prog => ({
+          ...prog,
+          variations: prog.variations.map(variation =>
+            variation.id === editingVariation.id
+              ? { ...variation, ...variationForm, features: variationForm.features.filter(f => f.trim() !== "") }
+              : variation
+          )
+        }))
+      })));
+      toast({ title: "Program variation updated successfully" });
+    } else {
+      const newVariation: ProgramVariation = {
+        id: Date.now().toString(),
+        ...variationForm,
+        features: variationForm.features.filter(f => f.trim() !== "")
+      };
+      
+      setCategories(prev => prev.map(cat => ({
+        ...cat,
+        programs: cat.programs.map(prog => 
+          prog.id === selectedProgramId
+            ? { ...prog, variations: [...prog.variations, newVariation] }
+            : prog
+        )
+      })));
+      toast({ title: "Program variation added successfully" });
+    }
     
     setVariationForm({ name: "", description: "", monthlyPrice: 0, features: [""] });
+    setEditingVariation(null);
     setShowVariationForm(false);
     setSelectedProgramId("");
-    toast({ title: "Program variation added successfully" });
   };
 
   const addFeatureField = () => {
@@ -258,7 +291,7 @@ export function CategoriesManagement() {
       {showProgramForm && (
         <Card>
           <CardHeader>
-            <CardTitle>Add Program to Category</CardTitle>
+            <CardTitle>{editingProgram ? "Edit Program" : "Add Program to Category"}</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleProgramSubmit} className="space-y-4">
@@ -294,15 +327,16 @@ export function CategoriesManagement() {
                 />
               </div>
               <div className="flex gap-2">
-                <Button type="submit">Add Program</Button>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => {
-                    setShowProgramForm(false);
-                    setProgramForm({ name: "", description: "", websiteUrl: "" });
-                  }}
-                >
+                <Button type="submit">{editingProgram ? "Update" : "Add"} Program</Button>
+                 <Button 
+                   type="button" 
+                   variant="outline" 
+                   onClick={() => {
+                     setShowProgramForm(false);
+                     setEditingProgram(null);
+                     setProgramForm({ name: "", description: "", websiteUrl: "" });
+                   }}
+                 >
                   Cancel
                 </Button>
               </div>
@@ -315,7 +349,7 @@ export function CategoriesManagement() {
       {showVariationForm && (
         <Card>
           <CardHeader>
-            <CardTitle>Add Program Variation</CardTitle>
+            <CardTitle>{editingVariation ? "Edit Program Variation" : "Add Program Variation"}</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleVariationSubmit} className="space-y-4">
@@ -384,15 +418,16 @@ export function CategoriesManagement() {
                 </Button>
               </div>
               <div className="flex gap-2">
-                <Button type="submit">Add Variation</Button>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => {
-                    setShowVariationForm(false);
-                    setVariationForm({ name: "", description: "", monthlyPrice: 0, features: [""] });
-                  }}
-                >
+                <Button type="submit">{editingVariation ? "Update" : "Add"} Variation</Button>
+                 <Button 
+                   type="button" 
+                   variant="outline" 
+                   onClick={() => {
+                     setShowVariationForm(false);
+                     setEditingVariation(null);
+                     setVariationForm({ name: "", description: "", monthlyPrice: 0, features: [""] });
+                   }}
+                 >
                   Cancel
                 </Button>
               </div>
@@ -468,17 +503,35 @@ export function CategoriesManagement() {
                                 {program.websiteUrl}
                               </a>
                             </div>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                setSelectedProgramId(program.id);
-                                setShowVariationForm(true);
-                              }}
-                            >
-                              <Plus className="h-3 w-3 mr-1" />
-                              Add Variation
-                            </Button>
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setEditingProgram(program);
+                                  setProgramForm({
+                                    name: program.name,
+                                    description: program.description,
+                                    websiteUrl: program.websiteUrl
+                                  });
+                                  setShowProgramForm(true);
+                                }}
+                              >
+                                <Edit className="h-3 w-3 mr-1" />
+                                Edit
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setSelectedProgramId(program.id);
+                                  setShowVariationForm(true);
+                                }}
+                              >
+                                <Plus className="h-3 w-3 mr-1" />
+                                Add Variation
+                              </Button>
+                            </div>
                           </div>
                           
                           {program.variations.length > 0 && (
@@ -496,6 +549,22 @@ export function CategoriesManagement() {
                                         <span className="text-xs">{variation.features.join(", ")}</span>
                                       </div>
                                     </div>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => {
+                                        setEditingVariation(variation);
+                                        setVariationForm({
+                                          name: variation.name,
+                                          description: variation.description,
+                                          monthlyPrice: variation.monthlyPrice,
+                                          features: [...variation.features, ""]
+                                        });
+                                        setShowVariationForm(true);
+                                      }}
+                                    >
+                                      <Edit className="h-3 w-3" />
+                                    </Button>
                                   </div>
                                 </div>
                               ))}
