@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Plus, Edit, Trash2, ChevronDown, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { programs as allPrograms } from "@/data/programs";
 
 interface ProgramVariation {
   id: string;
@@ -31,48 +32,103 @@ interface Category {
   programs: Program[];
 }
 
+// Helper function to convert programs to category format
+const convertProgramToCategory = (program: typeof allPrograms[0]): Program => ({
+  id: program.id,
+  name: program.name,
+  description: program.description,
+  websiteUrl: program.website,
+  variations: [
+    {
+      id: `${program.id}-main`,
+      name: program.name,
+      description: program.description,
+      monthlyPrice: program.monthlyPrice,
+      features: program.features
+    }
+  ]
+});
+
 export function CategoriesManagement() {
   const [categories, setCategories] = useState<Category[]>([
     {
       id: "1",
-      name: "Traditional Programs",
-      description: "Structured weight loss programs with proven track records",
+      name: "Commercial Programs",
+      description: "Established commercial weight loss programs with community support",
       programs: [
-        {
-          id: "p1",
-          name: "Weight Watchers",
-          description: "Points-based weight loss program with community support",
-          websiteUrl: "https://weightwatchers.com",
-          variations: [
-            {
-              id: "v1",
-              name: "Weight Watchers Free",
-              description: "Basic tracking with limited features",
-              monthlyPrice: 0,
-              features: ["Basic tracking", "Community forums"]
-            },
-            {
-              id: "v2", 
-              name: "Weight Watchers Premium",
-              description: "Full program with personal coaching",
-              monthlyPrice: 59,
-              features: ["Personal coach", "Full tracking", "Recipes", "Workshops"]
-            }
-          ]
-        }
-      ]
+        'weight-watchers',
+        'noom', 
+        'nutrisystem',
+        'jenny-craig'
+      ].map(id => {
+        const program = allPrograms.find(p => p.id === id);
+        return program ? convertProgramToCategory(program) : null;
+      }).filter(Boolean) as Program[]
     },
     {
       id: "2",
-      name: "Medical Weight Loss",
-      description: "Doctor-supervised weight loss programs and clinics",
-      programs: []
+      name: "Diet-Specific Programs",
+      description: "Programs focused on specific dietary approaches and eating patterns",
+      programs: [
+        'keto-diet',
+        'paleo-diet',
+        'mediterranean-diet',
+        'whole30',
+        'intermittent-fasting'
+      ].map(id => {
+        const program = allPrograms.find(p => p.id === id);
+        return program ? convertProgramToCategory(program) : null;
+      }).filter(Boolean) as Program[]
     },
     {
       id: "3",
-      name: "Medications",
-      description: "Weight loss medications like semaglutide, tirzepatide",
-      programs: []
+      name: "Fitness & Training Programs",
+      description: "Exercise-focused programs with personal training and group fitness",
+      programs: [
+        'personal-trainer',
+        'beachbody',
+        'orangetheory'
+      ].map(id => {
+        const program = allPrograms.find(p => p.id === id);
+        return program ? convertProgramToCategory(program) : null;
+      }).filter(Boolean) as Program[]
+    },
+    {
+      id: "4",
+      name: "Technology & App-Based",
+      description: "Digital platforms and mobile apps for tracking and guidance",
+      programs: [
+        'myfitnesspal',
+        'lose-it',
+        'sparkpeople'
+      ].map(id => {
+        const program = allPrograms.find(p => p.id === id);
+        return program ? convertProgramToCategory(program) : null;
+      }).filter(Boolean) as Program[]
+    },
+    {
+      id: "5",
+      name: "Medical & Supervised Programs",
+      description: "Doctor-supervised programs with medical oversight and prescription options",
+      programs: [
+        'calibrate',
+        'found'
+      ].map(id => {
+        const program = allPrograms.find(p => p.id === id);
+        return program ? convertProgramToCategory(program) : null;
+      }).filter(Boolean) as Program[]
+    },
+    {
+      id: "6",
+      name: "Meal Delivery & Convenience",
+      description: "Pre-prepared meals and meal kit services for convenient weight loss",
+      programs: [
+        'factor75',
+        'hello-fresh-fit'
+      ].map(id => {
+        const program = allPrograms.find(p => p.id === id);
+        return program ? convertProgramToCategory(program) : null;
+      }).filter(Boolean) as Program[]
     }
   ]);
   
