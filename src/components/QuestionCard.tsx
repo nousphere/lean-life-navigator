@@ -50,6 +50,11 @@ const QuestionCard = ({
   const handleSingleChoiceChange = (value: string) => {
     setTempAnswer(value);
     setError(null);
+    // Auto-advance to next question after a brief delay
+    setTimeout(() => {
+      onAnswer(question.id, value);
+      onNext();
+    }, 300);
   };
   
   const handleMultiChoiceChange = (value: string, checked: boolean) => {
